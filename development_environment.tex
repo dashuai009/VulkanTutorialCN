@@ -1,0 +1,578 @@
+\section{开发环境}
+
+在本章节，我们将介绍如何配置Vulkan SDK和一些非常有用的库。所有在这里用到的工具除了编译器外，适用于Windows，Linux和MacOS三个平台，但它们的安装方法可能在不同平台会有所不同，所以在这里我们按平台分别描述如何配置它们。
+
+\subsection{Windows}
+
+我们这里使用Visual Studio 2017作为Windows平台的开发环境，当然使用Visual Studio 2013或2015应该也不会有任何问题，只是配置方法可能会略微不同。
+
+\subsubsection{Vulkan SDK}
+
+Vulkan SDK是使用Vulkan开发应用程序必不可少的组件。它包含了Vulkan API的头文件，一个校验层实现，调试工具和Vulkan函数加载器。Vulkan函数加载器类似OpenGL的GLEW可以在运行时查询驱动程序支持的Vulkan API函数。
+
+Vulkan SDK可以从LunarG的网站上免费下载。
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.5]{img/f3-1.jpg}
+\end{figure}
+
+安装Vulkan SDK后，我们需要验证下我们的显卡和驱动程序是否支持Vulkan。这可以通过运行Vulkan SDK自带的cube.exe来完成，我们可以在Vulkan SDK安装目录下的Bin目录下找到它，运行后，可以看下到下面的窗口：
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.5]{img/f3-2.jpg}
+\end{figure}
+
+如果没有看到这个窗口，而是出现了一条错误消息，可以尝试更新显卡的驱动程序到最新版本，再次尝试，如果仍然出现错误消息，可以在显卡官网查询自己的显卡是否支持Vukan。
+
+在Bin目录下还有一个非常有用的程序：glslangValidator.exe。它可以将GLSL代码编译为字节码。我们会在着色器模块章节，对它进行更为详细地说明。除此之外，Bin目录下还包含了Vulkan函数加载器和校验层的二进制文件，它们的库文件则位于Vulkan SDK的Lib目录下。
+
+Vulkan SDK的Documentation目录包含了Vulkan SDK的离线文档和完整的Vulkan规范文档。最后是Vulkan SDK的Include目录，它包含了Vulkan API的头文件。除此之外，还有很多文件和目录，但对于我们的教程来说，并没有直接用到它们，所以就不再一一介绍。
+
+\subsubsection{GLFW}
+
+之前提到，Vulkan是一个平台无关的图形API，它没有包含任何用于创建窗口的功能。为了跨平台和避免陷入Win32的窗口细节中去，我们使用GLFW库来完成窗口相关操作，GLFW库支持Windows，Linux和MacOS。当然，还有其它一些库可以完成类似功能，比如SDL。但除了窗口相关处理，GLFW库对于Vulkan的使用还有其它一些优点。
+
+读者可以再GLFW的官方网站上免费下载到最新版本的GLFW库。在本教程，我们使用64位版本的GLFW库，但32位版本也是可以的，只是编译使用Vulkan的应用程序时也需要链接到32位版本的Vulkan API，也就是链接到Vulkan SDK下Lib32目录下的库。下载GLFW后，将它解压缩到一个合适的位置。这里，我们将它解压到Visual Studio目录下的Libraries目录中。不要纠结于为什么解压后不存在libvc-2017目录，我们的Visual Studio 2017是完全兼容lib-vc2015的。
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.5]{img/f3-3.png}
+\end{figure}
+
+\subsubsection{GLM}
+
+和DirectX 12不同，Vulkan没有包含线性代数库，我们需要自己找一个。GLM就是一个我们需要的线性代数库，它经常和OpenGL一块使用。
+
+GLM是一个只有头文件的库，我们只需要下载它的最新版，然后将它放在一个合适的位置，就可以通过包含头文件的方式使用它。
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.5]{img/f3-4.jpg}
+\end{figure}
+
+\subsubsection{配置Visual Studio}
+
+现在，我们可以创建一个基本Visual Studio工程来验证我们安装的依赖是否可以正常工作。
+
+首先，启动Visual Studio，然后选择Windows Destop Wizard。
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.5]{img/f3-5.jpg}
+\end{figure}
+
+我们选择使用Console Application (.exe)应用程序类型，这样做我们就可以直接将调试信息输出到控制台窗口上。另外，我们将Empty Project选项打勾来阻止Visual Studo添加模板代码。
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.5]{img/f3-6.jpg}
+\end{figure}
+
+创建项目后，我们添加一个C++源代码文件到项目中。
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.5]{img/f3-7.jpg}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.5]{img/f3-8.jpg}
+\end{figure}
+
+下面的代码是这个C++源文件的内容。源代码的内容暂时不需要理解，我们现在只是为了验证我们的依赖是否配置正确，源代码的内容，我们会在后面的章节详细说明。
+
+\begin{lstlisting}[language={[ANSI]C}]
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include <glm/vec4.hpp>
+#include <glm/mat4x4.hpp>
+
+#include <iostream>
+
+int main() {
+	glfwInit();
+
+	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+	GLFWwindow* window = glfwCreateWindow(800, 600, "Vulkan window", nullptr, nullptr);
+
+	uint32_t extensionCount = 0;
+	vkEnumerateInstanceExtensionProperties(nullptr,
+				&extensionCount, nullptr);
+
+	std::cout << extensionCount << " extensions supported" << std::endl;
+
+	glm::mat4 matrix;
+	glm::vec4 vec;
+	auto test = matrix * vec;
+
+	while(!glfwWindowShouldClose(window)) {
+		glfwPollEvents();
+	}
+
+	glfwDestroyWindow(window);
+
+	glfwTerminate();
+
+	return 0;
+}
+\end{lstlisting}
+
+现在，让我们开始配置项目属性，选择All Configurations，让设置对Debug和Release模式都有效。
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.5]{img/f3-9.jpg}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.5]{img/f3-10.jpg}
+\end{figure}
+
+打开C++ -> General -> Additional Include Directories，点击Additional Include Directories的<Edit...>下拉选项。
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.5]{img/f3-11.jpg}
+\end{figure}
+
+添加Vulkan，GLFW和GLM的头文件目录：
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.5]{img/f3-12.jpg}
+\end{figure}
+
+接着，打开Linker -> General：
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.5]{img/f3-13.jpg}
+\end{figure}
+
+添加Vulkan和GLFW的库目录：
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.5]{img/f3-14.jpg}
+\end{figure}
+
+打开 Linker -> Input，点击Additional Dependencies的<Edit...>下拉选项：
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.5]{img/f3-15.jpg}
+\end{figure}
+
+添加Vulkan和GLFW的库文件：
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.5]{img/f3-16.jpg}
+\end{figure}
+
+现在可以关闭项目属性对话框了。如果一切顺利，我们的代码编辑器里已经没有任何高亮出的错误代码了。
+
+最后，确认我们的代码在64位模式下编译：
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.5]{img/f3-17.jpg}
+\end{figure}
+
+然后，按下F5编译运行，你就会看到下面的窗口：
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.5]{img/f3-18.jpg}
+\end{figure}
+
+控制台窗口显示的扩展数应该是非0的。至此，我们就配置好了Vulkan的开发环境！
+
+\subsection{Linux}
+
+对于Linux平台的配置，我们使用Ubuntu作为演示，其它Linux平台的配置方法应该是类似的。我们使用二进制包来安装Vulkan SDK，使用GCC 4.8以上版本作为编译器，使用CMake和make作为构建系统。
+
+\subsubsection{Vulkan SDK}
+
+Vulkan SDK是使用Vulkan开发应用程序必不可少的组件。它包含了Vulkan API的头文件，一个校验层实现，调试工具和Vulkan函数加载器。Vulkan函数加载器类似OpenGL的GLEW可以在运行时查询驱动程序支持的Vulkan API函数。
+
+Vulkan SDK可以从LunarG的网站上免费下载。
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.5]{img/f3-19.jpg}
+\end{figure}
+
+打开终端，调整当前目录到我们下载的Vulkan SDK安装文件所在目录，然后使用下面的代码运行它：
+
+\begin{lstlisting}[language={bash}]
+chmod +x vulkansdk-linux-x86_64-xxx.run
+./vulkansdk-linux-x86_64-xxx.run
+\end{lstlisting}
+
+安装文件运行后会将Vulkan SDK的所有文件导出到当前目录的VulkanSDK文件夹中。我们可以自己将VulkanSDK文件夹移动到合适的位置。
+
+Vulkan SDK的根目录有一个build\_examples.sh脚本，执行它构建Vulkan SDK的示例程序需要我们安装XCB库，以及一些X窗口的开发文件，可以通过在终端运行下面的代码来安装这些所需的库：
+
+\begin{lstlisting}[language={bash}]
+sudo apt install libxcb1-dev xorg-dev
+\end{lstlisting}
+
+然后，我们就可以执行build\_examples.sh了：
+
+\begin{lstlisting}[language={bash}]
+./build_examples.sh
+\end{lstlisting}
+
+如果编译成功，在./examples/build/下就会出现一个cube可执行文件，运行它，可以看到下面的画面：
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.5]{img/f3-20.jpg}
+\end{figure}
+
+如果没有看到，而是出现了一条错误消息，可以尝试更新显卡的驱动程序到最新版本，再次尝试，如果仍然出现错误消息，可以在显卡官网查询自己的显卡是否支持Vukan。
+
+\subsubsection{GLFW}
+
+之前提到，Vulkan是一个平台无关的图形API，它没有包含任何用于创建窗口的功能。为了跨平台和避免陷入X11的窗口细节中去，我们使用GLFW库来完成窗口相关操作，GLFW库支持Windows，Linux和MacOS。当然，还有其它一些库可以完成类似功能，比如SDL。但除了窗口相关处理，GLFW库对于Vulkan的使用还有其它一些优点。
+
+这里，由于Vulkan需要较新版本的GLFW才能支持。所以，我们使用源代码来编译安装GLFW。读者可以从GLFW的官方网站免费下载到GLFW的最新源码包。下载完成后，我们将源码包解压，使用终端进入解压的源码所在的文件夹，执行下面的代码生成makefile文件，然后编译GLFW：
+
+\begin{lstlisting}[language={bash}]
+cmake .
+make
+\end{lstlisting}
+
+可能会出现Could NOT find Vulkan的警告信息，可以放心地忽略掉它。编译完成后，使用下面的代码将GLFW安装到系统的库目录中：
+
+\begin{lstlisting}[language={bash}]
+sudo make install
+\end{lstlisting}
+
+\subsubsection{GLM}
+
+和DirectX 12不同，Vulkan没有包含线性代数库，我们需要自己找一个。GLM就是一个我们需要的线性代数库，它经常和OpenGL一块使用。
+
+GLM是一个只有头文件的库，我们只需要下载它的最新版，然后将它放在一个合适的位置，就可以通过包含头文件的方式使用它。
+
+这里我们直接在终端使用下面的代码安装它：
+
+\begin{lstlisting}[language={bash}]
+sudo apt install libglm-dev
+\end{lstlisting}
+
+\subsubsection{配置makefile文件}
+
+现在，我们已经安装完了所有的依赖项，可以开始配置应用程序的makefile，验证安装是否正确。
+
+在一个合适的位置新建一个叫做VulkanTest的文件夹，然后在文件夹里创建包含下面代码的main.cpp源代码文件。
+
+\begin{lstlisting}[language={[ANSI]C}]
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include <glm/vec4.hpp>
+#include <glm/mat4x4.hpp>
+
+#include <iostream>
+
+int main() {
+	glfwInit();
+
+	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+	GLFWwindow* window = glfwCreateWindow(800, 600, "Vulkan
+window", nullptr, nullptr);
+
+	uint32_t extensionCount = 0;
+	vkEnumerateInstanceExtensionProperties(nullptr,
+				&extensionCount, nullptr);
+
+	std::cout << extensionCount << " extensions supported" << std::endl;
+
+	glm::mat4 matrix;
+	glm::vec4 vec;
+	auto test = matrix * vec;
+
+	while(!glfwWindowShouldClose(window)) {
+		glfwPollEvents();
+	}
+
+	glfwDestroyWindow(window);
+
+	glfwTerminate();
+
+	return 0;
+}
+\end{lstlisting}
+
+源代码的内容暂时不需要理解，我们现在只是为了验证我们的依赖是否配置正确，源代码的内容，我们会在后面的章节详细说明。
+
+接着，我们需要编写makefile来编译源代码。这里假设读者具有一定makefile使用经验，知道makefile的变量和规则的用法。如果没有，也可以从本教程中快速学习这些知识。
+
+我们首先定义一些变量来简化makefile编写。VULKAN\_SDKPATH变量存放了Vulkan SDK的x86\_64目录的位置：
+
+\begin{lstlisting}[language={bash}]
+VULKAN_SDK_PATH = /home/user/VulkanSDK/x.x.x.x/x86_64
+\end{lstlisting}
+
+读者应该替换上面代码的路径为自己Vulkan SDK的实际路径。接着，我们定义CFLAGS变量来指定编译选项：
+
+\begin{lstlisting}[language={bash}]
+CFLAGS = -std=c++11 -I$(VULKAN_SDK_PATH)/include
+\end{lstlisting}
+
+上面的代码表示使用C++ 11来编译源代码，将Vulkan SDK的包含目录加入编译器的包含目录搜索路径中。
+
+然后，定义LDFLAGS变量来指定链接选项：
+
+\begin{lstlisting}[language={bash}]
+LDFLAGS = -L$(VULKAN_SDK_PATH)/lib `pkg-config --static --libs glfw3` -lvulkan
+\end{lstlisting}
+
+上面的代码将Vulkan SDK的库路径加入链接器的库搜索路径中，链接了Vulkan SDK的vulkan库，使用pkg-config命令取得了glfw静态链接选项。
+现在可以开始定义编译VulkanTest的规则了：
+
+\begin{lstlisting}[language={bash}]
+VulkanTest: main.cpp
+	g++ $(CFLAGS) -o VulkanTest main.cpp $(LDFLAGS)
+\end{lstlisting}
+
+验证规则是否正确，可以将上面的代码保存为Makefile文件，然后使用终端在Makefile文件所在目录执行make命令。如果一切顺利，会生成一个VulkanTest可执行文件。
+
+现在，我们定义另外两个规则，test和clean，前一个规则用于执行生成的可执行文件，后一个规则用于清除生成的可执行文件：
+
+\begin{lstlisting}[language={bash}]
+.PHONY: test clean
+
+test: VulkanTest
+	./VulkanTest
+
+clean:
+	rm -f VulkanTest
+\end{lstlisting}
+
+验证规则能否执行后，读者可能会发现make clean工作的非常好，但make test却产生了下面的错误信息：
+
+\begin{lstlisting}[language={bash}]
+./VulkanTest: error while loading shared libraries:
+libvulkan.so.1: cannot open shared object file: No such file or directory
+\end{lstlisting}
+
+这是因为libvulkan.so没有被安装在系统的库目录，无法被VulkanTest加载。我们可以通过LD\_LIBRARY\_PATH环境变量显式指定库目录来解决这个问题：
+
+\begin{lstlisting}[language={bash}]
+test: VulkanTest
+	LD_LIBRARY_PATH=$(VULKAN_SDK_PATH)/lib ./VulkanTest
+\end{lstlisting}
+
+现在make test应该可以成功执行VulkanTest了。
+
+\begin{lstlisting}[language={bash}]
+test: VulkanTest
+	LD_LIBRARY_PATH=$(VULKAN_SDK_PATH)/lib\
+	VK_LAYER_PATH=$(VULKAN_SDK_PATH)/etc/explicit_layer.d\
+	./VulkanTest
+\end{lstlisting}
+
+至此，我们的Makefile文件已经编写完毕了，它的所有内容如下：
+
+\begin{lstlisting}[language={bash}]
+VULKAN_SDK_PATH = /home/user/VulkanSDK/x.x.x.x/x86_64
+
+CFLAGS = -std=c++11 -I$(VULKAN_SDK_PATH)/include
+LDFLAGS = -L$(VULKAN_SDK_PATH)/lib `pkg-config --static --libs glfw3` -lvulkan
+
+VulkanTest: main.cpp
+	g++ $(CFLAGS) -o VulkanTest main.cpp $(LDFLAGS)
+
+.PHONY: test clean
+
+test: VulkanTest
+	LD_LIBRARY_PATH=$(VULKAN_SDK_PATH)/lib\
+	VK_LAYER_PATH=$(VULKAN_SDK_PATH)/etc/ex	plicit_layer.d\
+	./VulkanTest
+
+clean:
+	rm -f VulkanTest
+\end{lstlisting}
+
+读者可以将刚刚配置的Makefile文件作为一个模板在以后使用。
+
+现在，让我们花点实践浏览下Vulkan SDK目录，在x86\_64/bin目录下还有一个非常有用的程序：glslangValidator。它可以将GLSL代码编译为字节码。我们会在着色器模块章节，对它进行更为详细地说明。除此之外，Bin目录下还包含了Vulkan函数加载器和校验层的二进制文件，它们的库文件则位于Vulkan SDK的Lib目录下。
+
+Vulkan SDK的Doc目录包含了Vulkan SDK的离线文档和完整的Vulkan规范文档。最后是Vulkan SDK的Include目录，它包含了Vulkan API的头文件。除此之外，还有很多文件和目录，但对于我们的教程来说，并没有直接用到它们，所以就不再一一介绍。
+
+至此，我们已经做好开始Vulkan探险之旅的准备！
+
+\subsection{MacOS}
+
+这里假定读者使用Xcode和Homebrew包管理器。另外还需要我们的MacOS版本在10.11以上，显卡设备支持Metal API。
+
+\subsubsection{Vulkan SDK}
+
+Vulkan SDK是使用Vulkan开发应用程序必不可少的组件。它包含了Vulkan API的头文件，一个校验层实现，调试工具和Vulkan函数加载器。Vulkan函数加载器类似OpenGL的GLEW可以在运行时查询驱动程序支持的Vulkan API函数。
+
+Vulkan SDK可以从LunarG的网站上免费下载。
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.5]{img/f3-21.jpg}
+\end{figure}
+
+Vulkan SDK的MacOS版本是通过MoltenVK实现的，并非原生实现，也就是说MoltenVK作为一个中间层将Vulkan API调用转换为Metal调用。这也使得我们可以直接使用Metal的调试功能进行调试。
+
+下载Vulkan SDK后，将它解压到一个合适的位置，在解压后的目录中的Applications，可以找到一些Vulkan SDK的演示程序，运行其中的可执行文件cube，你将会看到下面的窗口：
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.5]{img/f3-22.jpg}
+\end{figure}
+
+\subsubsection{GLFW}
+
+之前提到，Vulkan是一个平台无关的图形API，它没有包含任何用于创建窗口的功能。为了跨平台和避免陷入窗口操作相关的细节中去，我们使用GLFW库来完成窗口相关操作，GLFW库支持Windows，Linux和MacOS。当然，还有其它一些库可以完成类似功能，比如SDL。但除了窗口相关处理，GLFW库对于Vulkan的使用还有其它一些优点。
+
+我们使用Homebrew包管理器来安装GLFW库。GLFW的3.2.1稳定版目前还尚未完全支持Vulkan，所以我们使用下面的代码安装glfw3包的最新版本：
+
+\begin{lstlisting}[language={bash}]
+brew install glfw3 --HEAD
+\end{lstlisting}
+
+\subsubsection{GLM}
+
+Vulkan没有包含线性代数库，我们需要自己找一个。GLM就是一个我们需要的线性代数库，它经常和OpenGL一块使用。
+
+GLM是一个只有头文件的库，我们只需要下载它的最新版，然后将它放在一个合适的位置，就可以通过包含头文件的方式使用它。
+
+这里我们直接在终端使用下面的代码安装它：
+
+\begin{lstlisting}[language={bash}]
+brew install glm
+\end{lstlisting}
+
+\subsubsection{配置Xcode}
+
+现在所有的依赖项已经安装完毕，我们可以开始配置一个最基本的用于Xcode的Vulkan项目。
+
+启动Xcode，然后新建一个Xcode项目，选择Application > Command Line Tool项目类型：
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.5]{img/f3-23.jpg}
+\end{figure}
+
+接着，选择C++作为项目使用的语言：
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.5]{img/f3-24.jpg}
+\end{figure}
+
+现在将下面的代码作为项目的main.cpp源文件的内容：
+
+\begin{lstlisting}[language={[ANSI]C}]
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include <glm/vec4.hpp>
+#include <glm/mat4x4.hpp>
+
+#include <iostream>
+
+int main() {
+	glfwInit();
+
+	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+	GLFWwindow* window = glfwCreateWindow(800, 600, "Vulkan
+window", nullptr, nullptr);
+
+	uint32_t extensionCount = 0;
+	vkEnumerateInstanceExtensionProperties(nullptr,
+				&extensionCount, nullptr);
+
+	std::cout << extensionCount << " extensions supported" << std::endl;
+
+	glm::mat4 matrix;
+	glm::vec4 vec;
+	auto test = matrix * vec;
+
+	while(!glfwWindowShouldClose(window)) {
+		glfwPollEvents();
+	}
+
+	glfwDestroyWindow(window);
+
+	glfwTerminate();
+
+	return 0;
+}
+\end{lstlisting}
+
+源代码的内容暂时不需要理解，我们现在只是为了验证我们的依赖是否配置正确，源代码的内容，我们会在后面的章节详细说明。
+
+现在Xcode应该会显示一些诸如库未找到的错误。我们接下来的工作就是解决这些错误。在Project Navigator面板选择我们的项目，然后打开Build Settings标签页，进行下面的操作：
+
+\begin{itemize}
+	\item 将/usr/local/include加入Header Search Paths，这是Homebrew安装头文件的路径，我们安装的glm和glfw3的头文件都在该文件夹下，然后将vulkansdk/macOS/include加入Header Search Paths，vulkansdk为我们安装的Vulkan SDK的目录。这样Xcode就可以找到我们使用的库的头文件。
+	\item 将/usr/local/lib加入Library Search Paths，这是Homebrew安装库文件的路径，我们安装的glm和glfw3的库文件都在该文件夹下，然后将vulkansdk/macOS/lib加入Library Search Paths，vulkansdk为我们安装的Vulkan SDK的目录。这样Xcode就可以找到我们使用的库文件。
+\end{itemize}
+
+设置完成后，看起来像这样(实际内容依赖于我们自己的文件所在的位置)：
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.5]{img/f3-25.jpg}
+\end{figure}
+
+现在，点击 Build Phases标签页，添加glfw3和vulkan框架。这里，为了简便，我们添加的是动态库(如果想要使用静态库，可以参考这些库的官方文档)。
+
+\begin{itemize}
+	\item 对于glfw，打开/usr/local/lib目录，可以找到类似libglfw.3.x.dylib形式的文件(x是库的版本号，依赖于我们使用Homebrew下载安装的glfw的版本)。将这个文件拖拽到Linked Frameworks and Libraries标签页即可。
+	\item 对于Vulkan，打开vulkansdk/macOS/lib目录(vulkansdk是我们的Vulkan SDK所在目录)，拖拽libvulkan.1.dylib和libvulkan.1.x.xx.dylib文件到Linked Frameworks and Libraries标签页即可。
+\end{itemize}
+
+完成上面的操作后，更改Copy Files标签页下的Destination为Frameworks，然后清空Subpath文本框，去掉勾选Copy only when installing，点击+号，将所有三个动态库添加进去。
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.5]{img/f3-26.jpg}
+\end{figure}
+
+最后，我们需要配置环境变量。在Xcode的工具栏上通过Product > Scheme > Edit Scheme...打开Arguments标签页，添加下面的环境变量：
+
+\begin{itemize}
+	\item VK\_ICD\_FILENAMES = vulkansdk/macOS/etc/vulkan/icd.d/MoltenVK\_icd.json
+	\item VK\_LAYER\_PATH = vulkansdk/macOS/etc/vulkan/explicit\_layer.d
+\end{itemize}
+
+完成后，看起来像这样：
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.5]{img/f3-27.jpg}
+\end{figure}
+
+至此为止，我们完成了全部设置，可以编译运行项目了，效果如下：
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.5]{img/f3-28.jpg}
+\end{figure}
+
+程序输出的日志信息中的扩展数应该是非0的
+。
+现在，我们已经做好开始Vulkan探险之旅的准备！
+
+\newpage

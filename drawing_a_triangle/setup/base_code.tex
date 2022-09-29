@@ -1,0 +1,164 @@
+\section{基础代码}
+
+\subsection{一般结构}
+
+在本章节，我们开始使用Vulkan API编写代码。
+
+\begin{lstlisting}[language={[ANSI]C}]
+#include <vulkan/vulkan.h>
+
+#include <iostream>
+#include <stdexcept>
+#include <functional>
+#include <cstdlib>
+
+class HelloTriangleApplication {
+public:
+	void run() {
+		initVulkan();
+		mainLoop();
+		cleanup();
+	}
+
+private:
+	void initVulkan() {
+
+	}
+
+	void mainLoop() {
+
+	}
+
+	void cleanup() {
+
+	}
+};
+
+int main() {
+	HelloTriangleApplication app;
+
+	try {
+		app.run();
+	} catch (const std::exception& e) {
+		std::cerr << e.what() << std::endl;
+		return EXIT_FAILURE;
+	}
+
+	return EXIT_SUCCESS;
+}
+\end{lstlisting}
+
+代码中，我们首先包含了Vulkan API的头文件，它为我们提供了Vulkan API的函数，结构体和枚举。此外，包含stdexcept和iostream头文件用来报错。包含functional头文件用于资源管理。包含cstdlib头文件用来使用EXITSUCCESS和EXIT\_FAILURE宏。
+
+我们将程序本身包装为一个类，将Vulkan对象存储为类的私有成员。我们使用initVulkan函数来初始化Vulkan对象。初始化完成后，我们进入主循环进行渲染操作。mainLoop函数包含了一个循环，直到窗口被关闭，才会跳出这个循环。mainLoop函数返回后，我们使用cleanup函数完成资源的清理。
+
+程序在执行过程中，如果发生错误，会抛出一个带有错误描述信息的std::runtime\_error异常，我们在main函数捕获这个异常，并将异常的描述信息打印到控制台窗口。为了处理多种不同类型的异常，我们使用更加通用的std::exception来接受异常。一个比较常见的异常就是请求的扩展不被支持。
+
+接下来的每一章，我们会添加新的成员到我们的类中，然后在initVulkan函数中初始化它们，在cleanup函数中清理它们。
+
+\subsection{资源管理}
+
+和使用malloc函数分配的内存块相同，使用Vulkan API创建的Vulkan对象也需要在不需要它们时显式地被清除。现代C++可以通过<memory>头文件自动地进行资源管理，但在这里，为了让大家更加清晰地理解Vulkan对象地创建和清除，以及它们的生命周期，我们没有使用它，而是手动自己完成资源管理。除此之外，Vulkan的一个核心思想就是通过显式地定义每一个操作来避免出现不一致的现象。
+
+学完本教程后，读者可以通过重载std::shared\_ptr来实现自动资源管理。将RAII应用到自己的程序中。但对于学习而言，最好是能清晰地理解每一个细节部分。
+
+Vulkan对象可以直接通过类似vkCreateXXX的函数，或是通过其它对象调用类似vkAllocateXXX的函数创建。当创建的对象不再使用时，使用对应的vkDestroyXXX或vkFreeXXX函数进行清除操作。这些函数的参数对于不同类型的对象通常是不同的，但都具有一个pAllocator参数。我们可以通过这个参数来指定回调函数编写自己的内存分配器。但在本教程，我们没有使用它，将它设置为nullptr。
+
+\subsection{和GLFW交互}
+
+Vulkan可以在完全没有窗口的情况下工作，通常，在离屏渲染时会这样做。但一般而言，还是需要一个窗口来显示渲染结果给用户。接下来，我们要完成的就是窗口相关操作。
+
+首先替换代码中的\#include <vulkan/vulkan.h>为：
+
+\begin{lstlisting}[language={[ANSI]C}]
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+\end{lstlisting}
+
+上面的代码将GLFW库的定义包含进来，而GLFW库会自动包含Vulkan库的头文件。接着，我们添加一个叫做initWindow的函数来初始化GLFW，并在run函数中调用它：
+
+\begin{lstlisting}[language={[ANSI]C}]
+	void run() {
+		initWindow();
+		initVulkan();
+		mainLoop();
+		cleanup();
+	}
+
+private:
+	void initWindow() {
+
+	}
+\end{lstlisting}
+
+initWIndow函数首先调用了glfwInit函数来初始化GLFW库，由于GLFW库最初是为OpenGL设计的，所以我们需要显式地设置GLFW阻止它自动创建OpenGL上下文：
+
+\begin{lstlisting}[language={[ANSI]C}]
+glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+\end{lstlisting}
+
+窗口大小变化地处理需要注意很多地方，我们会在以后介绍它，暂时我们先禁止窗口大小改变：
+
+\begin{lstlisting}[language={[ANSI]C}]
+glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+\end{lstlisting}
+
+接着，我们添加了一个GLFWwindow* window变量存储我们创建的窗口句柄：
+
+\begin{lstlisting}[language={[ANSI]C}]
+window =glfwCreateWindow(800, 600, "Vulkan", nullptr, nullptr);
+\end{lstlisting}
+
+glfwCreateWindow函数的前三个参数指定了要创建的窗口的宽度，高度和标题。第四个参数用于指定在哪个显示器上打开窗口，最后一个参数与OpenGL相关，对我们没有意义。
+
+硬编码窗口大小不是一个好习惯，所以我们定义了两个常量，以便之后可以方便地修改它们：
+
+\begin{lstlisting}[language={[ANSI]C}]
+const int WIDTH = 800;
+const int HEIGHT = 600;
+\end{lstlisting}
+
+现在，我们地initWindow函数看起来应该像这样：
+
+\begin{lstlisting}[language={[ANSI]C}]
+void initWindow() {
+	glfwInit();
+
+	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+
+	window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+}
+\end{lstlisting}
+
+为了确保我们的程序在没有发生错误和窗口没有被关闭的情况下可以一直运行，我们在mainLoop函数中添加了下面的事件循环：
+
+\begin{lstlisting}[language={[ANSI]C}]
+void mainLoop() {
+	while (!glfwWindowShouldClose(window)) {
+		glfwPollEvents();
+	}
+}
+\end{lstlisting}
+
+上面的代码应该非常直白，每次循环，检测窗口的关闭按钮是否被按下，如果没有被按下，就执行事件处理，否则结束循环。在之后的章节，我们会在这一循环中调用渲染函数来渲染一帧画面。
+
+一旦窗口关闭，我们就可以开始结束GLFW，然后清除我们自己创建的资源，这在cleanup函数中进行：
+
+\begin{lstlisting}[language={[ANSI]C}]
+void cleanup() {
+	glfwDestroyWindow(window);
+
+	glfwTerminate();
+}
+\end{lstlisting}
+
+至此，我们就编写完成了一个可以使用Vulkan API的窗口程序骨架。
+
+本章节代码：
+
+C++：
+
+\url{https://vulkan-tutorial.com/code/00_base_code.cpp}
+
+\newpage
